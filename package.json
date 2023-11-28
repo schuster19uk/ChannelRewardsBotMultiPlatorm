@@ -1,0 +1,29 @@
+{
+  "name": "channelrewardsbotmultiplatorm",
+  "version": "1.0.0",
+  "description": "Channel Rewards Bot for multiplatform ",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "schuster19uk"
+  },
+  "keywords": [
+    "twitch",
+    "youtube"
+  ],
+  "author": "schuster efigenio",
+  "license": "ISC",
+  "dependencies": {
+    "tmi.js": "^1.8.3",
+    "googleapis": "^128.0.0",
+    "mysql": "^2.18.1",
+    "dotenv": "^8.2.0",
+    "got": "^11.8.0",
+    "axios": "1.6.2",
+    "websocket": "^1.0.34"
+  }
+}
