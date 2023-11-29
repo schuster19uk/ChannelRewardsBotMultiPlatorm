@@ -38,11 +38,25 @@ function initializeTwitchClient(oauthToken, channel, botUsername) {
     // Extract username and message from userstate
     const { username } = userstate;
 
+    console.log(`[Twitch Message] ${message}`);
+
     // Check if the message contains a specific command (e.g., !addPoints)
     if (message.toLowerCase() === '!addpoints') {
       // Add 5 points to the user in the database
       //addPointsToUser(username, 5);
     }
+  });
+
+  // Register event handler for new users joining the Twitch chat
+  twitchClient.on('join', (channel, username, self) => {
+    if (self) return; // Ignore own join events
+    console.log(`[Twitch] ${username} joined ${channel}`);
+    // Add your logic here if needed
+  });
+
+  twitchClient.on('part', (channel, username) => {
+    console.log(`[Twitch] ${username} left ${channel}`);
+    //users.delete(username);
   });
 
   // Connect to Twitch chat

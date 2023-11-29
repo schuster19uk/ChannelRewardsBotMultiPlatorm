@@ -65,7 +65,7 @@ app.get('/auth/callback', async (req, res) => {
     const accessToken = tokenResponse.data.access_token;
 
     // Print the access token (for demonstration purposes)
-    console.log(`Twitch Access Token: ${accessToken}`);
+    //console.log(`Twitch Access Token: ${accessToken}`);
 
     // Connect to Twitch chat using the obtained access token
     //connectToTwitchChat(accessToken, process.env['TWITCH_CHANNEL']); // Replace with your Twitch channel name
