@@ -1,161 +1,89 @@
+const express = require('express');
 const axios = require('axios');
-require('dotenv').config()
+const { exec } = require('child_process');
+const { initializeTwitchClient } = require('./twitchChat');
+dotenv = require('dotenv').config()
 
-let twitchOpts = {
-    identity: {
-      username: 'schusterUK', // bot username
-      password: 'your_twitch_oauth_token', // password / oauth token
-    },
-    channels: [process.env['TWITCH_CHANNELS']],
-    connection: {
-        secure: true,
+//const { initializeDatabase} = require('./database');
+//const { connectToYouTubeChat } = require('./youtubeChat');
+console.log(process.env)
+const app = express();
+const PORT = 3000;
+
+// Twitch app credentials
+const twitchClientId = process.env["TWITCH_CLIENT_ID"];
+const twitchClientSecret = process.env["TWITCH_CLIENT_SECRET"];
+const twitchRedirectUri = process.env["TWITCH_REDIRECT_URL"];
+
+// YouTube API key
+//const youtubeApiKey = 'your_youtube_api_key'; // Obtain from Google Cloud Console
+//const youtubeChannelUsername = 'your_youtube_channel_username'; // Replace with your YouTube channel username
+
+// Twitch API endpoints
+const twitchAuthUrl = process.env["TWITCH_AUTHORISE_URL"];
+const twitchTokenUrl = process.env["TWITCH_TOKEN_URL"];
+
+// State to prevent CSRF attacks
+const state = 'your_random_state';
+
+// Route to initiate the authentication process
+app.get('/auth', (req, res) => {
+  const authParams = new URLSearchParams({
+    client_id: twitchClientId,
+    redirect_uri: twitchRedirectUri,
+    response_type: 'code',
+    scope: 'chat:read chat:edit', // Add additional scopes as needed
+    state: state,
+  });
+
+  const authUrl = `${twitchAuthUrl}?${authParams.toString()}`;
+  res.redirect(authUrl);
+});
+
+// Route to handle the Twitch callback
+app.get('/auth/callback', async (req, res) => {
+  const { code, state: returnedState } = req.query;
+
+  // Check if the returned state matches the original state to prevent CSRF attacks
+  if (returnedState !== state) {
+    res.status(403).send('Invalid state');
+    return;
+  }
+
+  try {
+    // Exchange the authorization code for an access token
+    const tokenResponse = await axios.post(twitchTokenUrl, null, {
+      params: {
+        client_id: twitchClientId,
+        client_secret: twitchClientSecret,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: twitchRedirectUri,
       },
-  };
+    });
 
-  let setTwitchOptions = function(token){
-    console.log('setting token on options by validation code ' + token);
-    twitchOpts.identity.password = token;
+    const accessToken = tokenResponse.data.access_token;
+
+    // Print the access token (for demonstration purposes)
+    console.log(`Twitch Access Token: ${accessToken}`);
+
+    // Connect to Twitch chat using the obtained access token
+    //connectToTwitchChat(accessToken, process.env['TWITCH_CHANNEL']); // Replace with your Twitch channel name
+    initializeTwitchClient(accessToken, process.env['TWITCH_CHANNEL'], process.env['TWITCH_BOT_USER']);
+
+    // Connect to YouTube chat using the YouTube API key and channel username
+    //connectToYouTubeChat(youtubeApiKey, youtubeChannelUsername);
+
+    res.send('Authentication successful! You can close this window now.');
+  } catch (error) {
+    console.error('Error during authentication:', error.response ? error.response.data : error.message);
+    res.status(500).send('Authentication failed');
   }
+});
 
-  const getTokenClientCredentialsFlow = async () => {
-    const scopes = ['chat:read' , 'chat:edit' , 'user:bot' , 'user:read:chat' , 'channel:bot' , 'channel:moderate'];
-    // try {
-    //     // Define the required scopes
-    //   const scopes = ['chat:read', 'chat:write'];
-    //   const response =  await axios.post('https://id.twitch.tv/oauth2/token', null, {
-    //     params: {
-    //       client_id: process.env.TWITCH_CLIENT_ID,
-    //       client_secret: process.env.TWITCH_CLIENT_SECRET,
-    //       grant_type: 'client_credentials',
-    //       scope: scopes.join(' '),
-    //     },
-    //   });
-  
-    //   if (response.data.access_token) {
-    //     setTwitchOptions(response.data.access_token);
-    //     process.env.TWITCH_ACCESS_TOKEN = response.data.access_token;
-    //     console.log('Successfully obtained Twitch access token:', response.data.access_token);
-    //   } else {
-    //     throw new Error('Unable to retrieve Twitch token.');
-    //   }
-    // } catch (error) {
-    //   console.error('Error while obtaining Twitch token:', error.message);
-    //   throw new Error('Failed to obtain Twitch token.');
-    // }
-    // try {
-    //     const response = await axios.post('https://id.twitch.tv/oauth2/token', null, {
-    //       params: {
-    //         client_id: process.env.TWITCH_CLIENT_ID,
-    //         client_secret: process.env.TWITCH_CLIENT_SECRET,
-    //         grant_type: 'client_credentials',
-    //         //scope: scopes.join(' '),
-    //       },
-    //     });
-    
-    //     // Extract and print the access token
-    //     const accessToken = response.data.access_token;
-    //     console.log(`Access Token: ${accessToken}`);
-    //   } catch (error) {
-    //     console.error('Error obtaining OAuth token:', error.message);
-    //   }  
-
-
-      try {
-        const response = await axios.post(
-          'https://id.twitch.tv/oauth2/token',
-          null,
-          {
-            params: {
-              client_id: process.env.TWITCH_CLIENT_ID,
-              client_secret: process.env.TWITCH_CLIENT_SECRET,
-              grant_type: 'client_credentials',
-              scope: scopes.join(' '),
-            },
-          }
-        );
-    
-        // Extract and print the access token
-        const accessToken = response.data.access_token;
-        process.env.TWITCH_ACCESS_TOKEN = response.data.access_token;
-        console.log(`Access Token: ${accessToken}`);
-        setTwitchOptions(`oauth:${response.data.access_token}`);
-        return `oauth:${response.data.access_token}`
-      } catch (error) {
-        console.error('Error obtaining OAuth token:', error.message);
-        console.error('Response data:', error.response ? error.response.data : 'N/A');
-      }
-
-
-};
-
-
-const getToken = async () => {
-    const scopes = ['chat:read' , 'chat:edit' , 'user:bot' , 'user:read:chat' , 'channel:bot' , 'channel:moderate'];
-
-      try {
-        const response = await axios.get(
-          `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${process.env.TWITCH_REDIRECT}&scope=${scopes.join(' ')}`,
-           null,
-        //   {
-        //     params: {
-        //       response_type:'token',
-        //       client_id: process.env.TWITCH_CLIENT_ID,
-        //       redirect_uri: process.env.TWITCH_REDIRECT_URI,
-        //       scope: scopes.join(' '),
-        //     },
-        //   }
-        );
-    
-        // Extract and print the access token
-        const accessToken = response.data.access_token;
-        process.env.TWITCH_ACCESS_TOKEN = response.data.access_token;
-        console.log(`Access Token: ${accessToken}`);
-        setTwitchOptions(`oauth:${response.data.access_token}`);
-        return `oauth:${response.data.access_token}`
-      } catch (error) {
-        console.error('Error obtaining OAuth token:', error.message);
-        console.error('Response data:', error.response ? error.response.data : 'N/A');
-      }
-
-
-};
-
-// https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=t7kyrxjq326tij087ax7o8a6y686d8&redirect_uri=http://localhost:3000&scope=chat%3Aread&state=c3ab8aa609ea11e793ae92361f002671
-
-
-// this no longer exists because twitch remvoed this functionality
-  const validateToken = async () => {
-    let r
-    try {
-        // const response = await axios.post('https://id.twitch.tv/oauth2/validate', null, {
-        //     headers: {
-        //         "Authorization": `Bearer ${process.env['TWITCH_ACCESS_TOKEN']}`
-        //     },
-        //   });
-
-          const response = await axios.post(
-            'https://id.twitch.tv/oauth2/validate',
-            null,
-            {
-                headers: {
-                    "Authorization": `OAuth ${process.env['TWITCH_ACCESS_TOKEN']}`
-                },
-            }
-          );
-
-    } catch (error) {
-        console.log('Invalid token. Getting a new one')
-        await getToken();
-    }
-  }
-
-
-
-  let getOptions = twitchOpts
-
-
-  module.exports = {
-    getToken , getOptions , validateToken
-  };
-
- 
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running at http://localhost:${PORT}`);
+  //initializeDatabase("host" , "database" , "username" ,"password")
+  exec(`start http://localhost:${PORT}/auth`);
+});
