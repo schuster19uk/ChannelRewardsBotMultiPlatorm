@@ -1,5 +1,5 @@
 const tmi = require('tmi.js');
-//const { addPointsToUser } = require('./database');
+const { addPointsToTwitchUser } = require('./database');
 
 // Function to initialize the Twitch client
 function initializeTwitchClient(oauthToken, channel, botUsername) {
@@ -43,7 +43,7 @@ function initializeTwitchClient(oauthToken, channel, botUsername) {
     // Check if the message contains a specific command (e.g., !addPoints)
     if (message.toLowerCase() === '!addpoints') {
       // Add 5 points to the user in the database
-      //addPointsToUser(username, 5);
+      addPointsToTwitchUser(username, 5);
     }
   });
 

@@ -4,7 +4,7 @@ const { exec } = require('child_process');
 const { initializeTwitchClient } = require('./twitchChat');
 dotenv = require('dotenv').config()
 
-//const { initializeDatabase} = require('./database');
+const { initializeDatabase} = require('./database');
 //const { connectToYouTubeChat } = require('./youtubeChat');
 console.log(process.env)
 const app = express();
@@ -84,6 +84,6 @@ app.get('/auth/callback', async (req, res) => {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
-  //initializeDatabase("host" , "database" , "username" ,"password")
+  initializeDatabase("localhost" , "stream_rewards" , "root" ,"password")
   exec(`start http://localhost:${PORT}/auth`);
 });

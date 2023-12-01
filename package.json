@@ -2,7 +2,7 @@
   "name": "channelrewardsbotmultiplatorm",
   "version": "1.0.0",
   "description": "Channel Rewards Bot for multiplatform ",
-  "main": "index.js",
+  "main": "twitchAuth.js",
   "scripts": {
     "start": "node twitchAuth.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -19,11 +19,10 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.6.2",
-    "ci": "^2.3.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "googleapis": "^128.0.0",
-    "mysql": "^2.18.1",
+    "mysql2": "^3.6.5",
     "tmi.js": "^1.8.5"
   }
 }
