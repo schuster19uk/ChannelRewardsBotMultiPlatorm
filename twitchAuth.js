@@ -16,9 +16,9 @@ const twitchClientSecret = process.env["TWITCH_CLIENT_SECRET"];
 const twitchRedirectUri = process.env["TWITCH_REDIRECT_URL"];
 
 // YouTube API key
-const youtubeApiKey = 'AIzaSyBs1ymT2dbGDZHlfTaRHeh_sOOb3w7FYNA'; // Obtain from Google Cloud Console
-const youtubeChannelUsername = 'UCwsyRVF3X7RylJJi7nct0qQ'; //this is the channel id // Replace with your YouTube channel username
-
+const youtubeApiKey = process.env["YT_API_KEY"]; //'AIzaSyBs1ymT2dbGDZHlfTaRHeh_sOOb3w7FYNA'; // Obtain from Google Cloud Console
+const youtubeChannelId = process.env["YT_CHANNELID"]; //'UCwsyRVF3X7RylJJi7nct0qQ'; //this is the channel id // Replace with your YouTube channel username
+const youtubeChannelUsername = process.env["YT_CHANNELNAME"];//accounts prior to a certain date don't have these
 // Twitch API endpoints
 const twitchAuthUrl = process.env["TWITCH_AUTHORISE_URL"];
 const twitchTokenUrl = process.env["TWITCH_TOKEN_URL"];
@@ -72,7 +72,7 @@ app.get('/auth/callback', async (req, res) => {
     initializeTwitchClient(accessToken, process.env['TWITCH_CHANNEL'], process.env['TWITCH_BOT_USER']);
 
     // Connect to YouTube chat using the YouTube API key and channel username
-    connectToYouTubeChat(youtubeApiKey, youtubeChannelUsername);
+    connectToYouTubeChat(youtubeApiKey , youtubeChannelId , youtubeChannelUsername );
 
     res.send('Authentication successful! You can close this window now.');
   } catch (error) {

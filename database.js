@@ -34,15 +34,17 @@ function initializeDatabase(host, database, username, password) {
 
             const createTablesQuery = `
               CREATE TABLE IF NOT EXISTS twitch_users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT PRIMARY KEY,
                 username VARCHAR(255) NOT NULL,
-                message_id INT DEFAULT 0,
+                display_name VARCHAR(255) NOT NULL,
+                message_id string DEFAULT 0,
                 points INT DEFAULT 0
               );
               CREATE TABLE IF NOT EXISTS youtube_users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT PRIMARY KEY,
                 username VARCHAR(255) NOT NULL,
-                message_id INT DEFAULT 0,
+                display_name VARCHAR(255) NOT NULL,
+                message_id string DEFAULT 0,
                 points INT DEFAULT 0
               );
             `;
@@ -61,17 +63,51 @@ function initializeDatabase(host, database, username, password) {
   });
 }
 
-function addPointsToTwitchUser(username, pointsToAdd) {
+function addPointsToTwitchUser(username, pointsToAdd ,  userId , messageId, displayName ) {
 
-  const query = 'UPDATE twitch_users SET points = points + ? WHERE username = ?';
+  const select = 'SELECT username from twitch_users WHERE username = ?';
 
-  dbConnection.query(query, [pointsToAdd, username], (error, results) => {
+  dbConnection.query(select, [username], (error, results) => {
     if (error) {
-      console.error('Error updating points:', error);
+      console.error('error getting user:', error);
       return;
+    }else{
+      if(results.length > 0)
+      {
+          const query = 'UPDATE twitch_users SET points = points + ? , message_id = ? , display_name = ?  WHERE user_id = ?';
+
+          dbConnection.query(query, [pointsToAdd, userId , messageId , displayName], (error, results) => {
+            if (error) {
+              console.error('Error updating points:', error);
+              return;
+            }
+            else {
+              console.log(`updated points for user ( ${username} )`);
+            }
+
+          });
+      }else {
+
+        const query = 'INSERT INTO twitch_users (user_id , username , display_name , message_id, points) values (?,  ? , ? , ? , ?)';
+
+        dbConnection.query(query, [ userId, username,  displayName, messageId, pointsToAdd], (error, results) => {
+          if (error) {
+            console.error('user created with initial points:', error);
+            return;
+          }
+
+          if (results.affectedRows > 0)
+          {
+            console.log(`${username} created and points added (new user) with ID: ` + results.insertId);
+          }
+
+        });
+      }
     }
-    console.log(`Points added to ${username}`);
   });
+
+
+
 }
 
 function addPointsToYoutubeUser(username, pointsToAdd) {

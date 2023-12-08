@@ -1,6 +1,9 @@
 const tmi = require('tmi.js');
 const { addPointsToTwitchUser } = require('./database');
 
+//rewards points
+const rewardPoints = process.env["REWARD_POINTS"];
+
 // Function to initialize the Twitch client
 function initializeTwitchClient(oauthToken, channel, botUsername) {
   const twitchOptions = {
@@ -35,15 +38,15 @@ function initializeTwitchClient(oauthToken, channel, botUsername) {
     // Ignore messages from the bot itself
     if (self) return;
 
-    // Extract username and message from userstate
-    const { username } = userstate;
+    // Extract username , display-name , userId and chat Id (id) message from userstate
+    const { username, ['display-name']: displayName, 'user-id': userId, 'id': messageId } = userstate;
 
     console.log(`[Twitch Message] ${message}`);
 
     // Check if the message contains a specific command (e.g., !addPoints)
     if (message.toLowerCase() === '!addpoints') {
       // Add 5 points to the user in the database
-      addPointsToTwitchUser(username, 5);
+      addPointsToTwitchUser(username, rewardPoints , userId , messageId, displayName);
     }
   });
 

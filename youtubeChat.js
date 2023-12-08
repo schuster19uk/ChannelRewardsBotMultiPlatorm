@@ -1,50 +1,53 @@
 const { google } = require('googleapis');
 const axios = require('axios');
 
-async function getYouTubeLiveVideoId(apiKey, channelId, channelUsername) {
+async function getYouTubeLiveVideoId(apiKey,   channelId , channelUsername ) {
   try {
-    
-    let YTchannelId
-    
-    if(!channelId)
-    {
-    // Get the channel ID using the channel username
-    const channelResponse = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
-      params: {
-        part: 'id',
-        forUsername: channelUsername,
-        key: apiKey,
-      },
-    });
+    let YTchannelId;
 
-     YTchannelId = channelResponse.data.items[0].id;
+    if (!channelId) {
+      // Get the channel ID using the channel username if provided
+      const channelResponse = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
+        params: {
+          part: 'id',
+          forUsername: channelUsername,
+          key: apiKey,
+        },
+      });
 
-    }else{
+      YTchannelId = channelResponse.data.items[0].id;
+    } else {
       YTchannelId = channelId;
     }
 
+    let liveVideoId = null;
 
-    //channelId is on the page
-    // I don't have a channel username so I can skip this function call above
+    // Use a do-while loop to call the YouTube API every minute until a live video is found or a certain condition is met
+    do {
+      // Get the live broadcast details for the channel
+      const liveBroadcastResponse = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+        params: {
+          part: 'id',
+          channelId: YTchannelId,
+          eventType: 'live',
+          type: 'video',
+          key: apiKey,
+        },
+      });
 
-    // Get the live broadcast details for the channel
-    const liveBroadcastResponse = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-      params: {
-        part: 'id',
-        channelId: YTchannelId,
-        eventType: 'live',
-        type: 'video',
-        key: apiKey,
-      },
-    });
+      // Extract the live video ID
+      liveVideoId = liveBroadcastResponse.data.items[0]?.id.videoId;
 
-    // Extract the live video ID
-    const liveVideoId = liveBroadcastResponse.data.items[0]?.id.videoId;
+      if (!liveVideoId) {
+        console.log('No active live video found for the given channel. Retrying in 1 minute...');
+        // Wait for 1 minute (60,000 milliseconds) before retrying
+        await new Promise(resolve => setTimeout(resolve, 60000));
+      }
+      else {
+        console.log('live streaming id obtained')
+      }
 
-    if (!liveVideoId) {
-      console.error('No active live video found for the given channel.');
-      return null;
-    }
+    } while (!liveVideoId);
 
     console.log(`YouTube Live Video ID: ${liveVideoId}`);
     return liveVideoId;
@@ -54,8 +57,8 @@ async function getYouTubeLiveVideoId(apiKey, channelId, channelUsername) {
   }
 }
 
-async function connectToYouTubeChat(apiKey, channelUsername) {
-  const liveVideoId = await getYouTubeLiveVideoId(apiKey, channelUsername);
+async function connectToYouTubeChat(apiKey, channelId , channelUsername) {
+  const liveVideoId = await getYouTubeLiveVideoId(apiKey, channelId , channelUsername);
 
   if (!liveVideoId) {
     console.error('YouTube Live video ID retrieval failed.');
@@ -81,7 +84,9 @@ async function connectToYouTubeChat(apiKey, channelUsername) {
   // Set up the live chat polling
   setInterval(() => {
     pollLiveChat(apiKey, liveChatId);
-  }, 60000); // Poll every 5 seconds (adjust as needed)
+    const newdate = new Date().toLocaleTimeString();
+    console.log('polling youtube: ' + newdate);
+  }, 30000); // Poll every x seconds
 }
 
 
@@ -96,16 +101,9 @@ async function connectToYouTubeChat(apiKey, channelUsername) {
 async function pollLiveChat(apiKey, liveChatId, targetChannelId) {
   const youtube = google.youtube('v3');
   let pageToken = null;
+  let isProcessing = false;
 
-  do {
-    const liveChatMessages = await youtube.liveChatMessages.list({
-      auth: apiKey,
-      liveChatId: liveChatId,
-      part: 'id,snippet,authorDetails',
-      maxResults: 100,
-      pageToken: pageToken,
-    });
-
+  async function processMessages(liveChatMessages) {
     const messages = liveChatMessages.data.items || [];
 
     // Filter messages based on a specific time range and author
@@ -144,6 +142,22 @@ async function pollLiveChat(apiKey, liveChatId, targetChannelId) {
 
     // Update the pageToken for the next iteration
     pageToken = liveChatMessages.data.nextPageToken;
+    isProcessing = false; // Mark the processing as complete
+  }
+
+  do {
+    if (!isProcessing) {
+      isProcessing = true; // Mark the start of processing
+      const liveChatMessages = await youtube.liveChatMessages.list({
+        auth: apiKey,
+        liveChatId: liveChatId,
+        part: 'id,snippet,authorDetails',
+        maxResults: 100,
+        pageToken: pageToken,
+      });
+
+      await processMessages(liveChatMessages);
+    }
 
   } while (pageToken);
 }
