@@ -3,9 +3,9 @@ const axios = require('axios');
 const { exec } = require('child_process');
 const { initializeTwitchClient } = require('./twitchChat');
 dotenv = require('dotenv').config()
-
-const { initializeDatabase} = require('./database');
-const { connectToYouTubeChat } = require('./youtubeChat');
+const { initializeDatabase } = require('./dynamoDB');
+//const { initializeDatabase} = require('./database');
+//const { connectToYouTubeChat } = require('./youtubeChat');
 console.log(process.env)
 const app = express();
 const PORT = 3000;
@@ -25,6 +25,19 @@ const twitchTokenUrl = process.env["TWITCH_TOKEN_URL"];
 
 // State to prevent CSRF attacks
 const state = 'your_random_state';
+
+// Initialize the database when the server starts
+initializeDatabase("localhost", "stream_rewards", "root", "password")
+  .then(() => {
+    // The server will start after the database is initialized
+    app.listen(PORT, async () => {
+      console.log(`Server is running at http://localhost:${PORT}`);
+      exec(`start http://localhost:${PORT}/auth`);
+    });
+  })
+  .catch((error) => {
+    console.error('Error initializing the database:', error);
+  });
 
 // Route to initiate the authentication process
 app.get('/auth', (req, res) => {
@@ -72,7 +85,7 @@ app.get('/auth/callback', async (req, res) => {
     initializeTwitchClient(accessToken, process.env['TWITCH_CHANNEL'], process.env['TWITCH_BOT_USER']);
 
     // Connect to YouTube chat using the YouTube API key and channel username
-    connectToYouTubeChat(youtubeApiKey , youtubeChannelId , youtubeChannelUsername );
+    //connectToYouTubeChat(youtubeApiKey , youtubeChannelId , youtubeChannelUsername );
 
     res.send('Authentication successful! You can close this window now.');
   } catch (error) {
@@ -82,8 +95,10 @@ app.get('/auth/callback', async (req, res) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server is running at http://localhost:${PORT}`);
-  initializeDatabase("localhost" , "stream_rewards" , "root" ,"password")
+  //initializeDatabase("localhost" , "stream_rewards" , "root" ,"password")
+  //initializeDatabase("localhost" , "stream_rewards")
+
   exec(`start http://localhost:${PORT}/auth`);
 });
