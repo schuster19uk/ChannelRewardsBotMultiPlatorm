@@ -1,3 +1,4 @@
+// created for mongo in case we decide to use this
 const { MongoClient } = require('mongodb');
 
 let db;

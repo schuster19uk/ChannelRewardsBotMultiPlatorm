@@ -1,9 +1,10 @@
 const express = require('express');
 const axios = require('axios');
 const { exec } = require('child_process');
+const DynamoDBManager = require('./dynamoDB'); 
 const { initializeTwitchClient } = require('./twitchChat');
 dotenv = require('dotenv').config()
-const { initializeDatabase } = require('./dynamoDB');
+//const { initializeDatabase } = require('./dynamoDB');
 //const { initializeDatabase} = require('./database');
 //const { connectToYouTubeChat } = require('./youtubeChat');
 console.log(process.env)
@@ -26,18 +27,25 @@ const twitchTokenUrl = process.env["TWITCH_TOKEN_URL"];
 // State to prevent CSRF attacks
 const state = 'your_random_state';
 
-// Initialize the database when the server starts
-initializeDatabase("localhost", "stream_rewards", "root", "password")
-  .then(() => {
-    // The server will start after the database is initialized
-    app.listen(PORT, async () => {
-      console.log(`Server is running at http://localhost:${PORT}`);
-      exec(`start http://localhost:${PORT}/auth`);
-    });
-  })
-  .catch((error) => {
+// dynamoDB settings
+const dynamoDBManager = new DynamoDBManager(process.env["AWS_REGION"] , process.env["DYNAMO_TWITCH_USERS_TABLENAME"] , process.env["DYNAMO_YOUTUBE_USERS_TABLENAME"]);
+const twitchTableSettings = { name: process.env["DYNAMO_TWITCH_USERS_TABLENAME"] }; 
+const youtubeTableSettings = { name: process.env["DYNAMO_YOUTUBE_USERS_TABLENAME"] };
+
+console.log('twitch table stuff: ' + JSON.stringify(twitchTableSettings));
+console.log('youtube table stuff: ' + JSON.stringify(youtubeTableSettings));
+
+app.listen(PORT, async () => {
+  try {
+    // Initialize the database
+    await dynamoDBManager.initializeDatabase(twitchTableSettings, youtubeTableSettings);
+
+    console.log(`Server is running at http://localhost:${PORT}`);
+    exec(`start http://localhost:${PORT}/auth`);
+  } catch (error) {
     console.error('Error initializing the database:', error);
-  });
+  }
+});
 
 // Route to initiate the authentication process
 app.get('/auth', (req, res) => {
@@ -94,11 +102,11 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(PORT, async () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
-  //initializeDatabase("localhost" , "stream_rewards" , "root" ,"password")
-  //initializeDatabase("localhost" , "stream_rewards")
+// // Start the server (OLD)
+// app.listen(PORT, async () => {
+//   console.log(`Server is running at http://localhost:${PORT}`);
+//   //initializeDatabase("localhost" , "stream_rewards" , "root" ,"password")
+//   //initializeDatabase("localhost" , "stream_rewards")
 
-  exec(`start http://localhost:${PORT}/auth`);
-});
+//   exec(`start http://localhost:${PORT}/auth`);
+// });

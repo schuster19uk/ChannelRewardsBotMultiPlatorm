@@ -1,8 +1,12 @@
 const tmi = require('tmi.js');
-const { addPointsToTwitchUser } = require('./database');
+const DynamoDBManager = require('./dynamoDB'); // Update the path to the correct location
+dotenv = require('dotenv').config();
 
 //rewards points
 const rewardPoints = process.env["REWARD_POINTS"];
+
+// Initialize DynamoDBManager
+const dynamoDBManager = new DynamoDBManager(process.env.AWS_REGION, process.env["DYNAMO_TWITCH_USERS_TABLENAME"] , process.env["DYNAMO_YOUTUBE_USERS_TABLENAME"]); // Update with your AWS region
 
 // Function to initialize the Twitch client
 function initializeTwitchClient(oauthToken, channel, botUsername) {
@@ -46,7 +50,8 @@ function initializeTwitchClient(oauthToken, channel, botUsername) {
     // Check if the message contains a specific command (e.g., !addPoints)
     if (message.toLowerCase() === '!addpoints') {
       // Add 5 points to the user in the database
-      addPointsToTwitchUser(username, rewardPoints , userId , messageId, displayName);
+      //addPointsToTwitchUser(username, rewardPoints , userId , messageId, displayName);
+      dynamoDBManager.addPointsToTwitchUser(username, parseInt(rewardPoints), userId, messageId, displayName);
     }
   });
 

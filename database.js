@@ -1,3 +1,6 @@
+//created for mysql 
+//(works but went with dynamoDB in AWS to host in the cloud using free tier)
+//"mysql2": "^3.6.5", for package json
 const mysql = require('mysql2');
 
 let dbConnection;
