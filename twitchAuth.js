@@ -3,10 +3,15 @@ const axios = require('axios');
 const { exec } = require('child_process');
 const DynamoDBManager = require('./dynamoDB'); 
 const { initializeTwitchClient } = require('./twitchChat');
+const DiscordModule = require('./discordModule');
+// Create an instance of DiscordModule
+const discordBot = new DiscordModule();
+
+
 dotenv = require('dotenv').config()
 //const { initializeDatabase } = require('./dynamoDB');
 //const { initializeDatabase} = require('./database');
-//const { connectToYouTubeChat } = require('./youtubeChat');
+const { connectToYouTubeChat } = require('./youtubeChat');
 console.log(process.env)
 const app = express();
 const PORT = 3000;
@@ -23,6 +28,9 @@ const youtubeChannelUsername = process.env["YT_CHANNELNAME"];//accounts prior to
 // Twitch API endpoints
 const twitchAuthUrl = process.env["TWITCH_AUTHORISE_URL"];
 const twitchTokenUrl = process.env["TWITCH_TOKEN_URL"];
+
+// Initialize the discord bot by logging in with the token
+const botToken = process.env["DISCORD_BOT_TOKEN"]; // Replace with your actual bot token
 
 // State to prevent CSRF attacks
 const state = 'your_random_state';
@@ -41,7 +49,16 @@ app.listen(PORT, async () => {
     await dynamoDBManager.initializeDatabase(twitchTableSettings, youtubeTableSettings);
 
     console.log(`Server is running at http://localhost:${PORT}`);
-    exec(`start http://localhost:${PORT}/auth`);
+    if(process.env["TWITCH_ENABLED"] == true)
+    {
+      exec(`start http://localhost:${PORT}/auth`);
+    }
+    else
+    {
+      connectToYouTubeChat(youtubeApiKey , youtubeChannelId , youtubeChannelUsername );
+      discordBot.login(botToken);
+    }
+
   } catch (error) {
     console.error('Error initializing the database:', error);
   }
@@ -93,7 +110,8 @@ app.get('/auth/callback', async (req, res) => {
     initializeTwitchClient(accessToken, process.env['TWITCH_CHANNEL'], process.env['TWITCH_BOT_USER']);
 
     // Connect to YouTube chat using the YouTube API key and channel username
-    //connectToYouTubeChat(youtubeApiKey , youtubeChannelId , youtubeChannelUsername );
+    connectToYouTubeChat(youtubeApiKey , youtubeChannelId , youtubeChannelUsername );
+    discordBot.login(botToken);
 
     res.send('Authentication successful! You can close this window now.');
   } catch (error) {
