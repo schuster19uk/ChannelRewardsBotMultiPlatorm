@@ -21,7 +21,7 @@ async function getYouTubeLiveVideoId(apiKey,   channelId , channelUsername ) {
     }
 
     let liveVideoId = null;
-
+    console.log('requesting videoId:' + YTchannelId);
     // Use a do-while loop to call the YouTube API every minute until a live video is found or a certain condition is met
     do {
       // Get the live broadcast details for the channel
@@ -34,6 +34,8 @@ async function getYouTubeLiveVideoId(apiKey,   channelId , channelUsername ) {
           key: apiKey,
         },
       });
+
+      console.log('successfull');
 
       // Extract the live video ID
       liveVideoId = liveBroadcastResponse.data.items[0]?.id.videoId;
