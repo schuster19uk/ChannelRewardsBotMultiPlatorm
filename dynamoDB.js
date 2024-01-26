@@ -1,5 +1,5 @@
-
-const { DynamoDBClient, CreateTableCommand,DescribeTableCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+//TODO !checkTwitch , !checkYT commands to return if their accounts match.
+const { DynamoDBClient, CreateTableCommand,DescribeTableCommand, UpdateItemCommand ,QueryCommand } = require('@aws-sdk/client-dynamodb');
 
 class DynamoDBManager {
   constructor(region, twitchTableName, youtubeTableName) {
@@ -118,14 +118,155 @@ async describeTable(tableName) {
     }
   }
 
-  async addPointsToYoutubeUser(username, pointsToAdd) {
+  async addDiscordInfoToTwitchUser(username, discordID, discordUsername, avatarURL) {
+    // Check if the user already has a discordID
+    const existingUser = await this.getTwitchUserByUsername(username);
+    if (existingUser && existingUser.Items && existingUser.Items.length > 0 && existingUser.Items[0].discordID && existingUser.Items[0].discordID.S) {
+        return (`Twitch user (${username}) has already been associated with a discord username. Use !checkTwitch yourTwitchUserName to see if your Twitch Username is associated with your discord account.`);
+    }
+
+    if (existingUser.Count <= 0)
+    {
+      return `Twitch user (${username}) has not interacted in twitch chat`;
+    }
+
+    const params = {
+        TableName: this.twitchTableName,
+        IndexName: 'UsernameIndex', // Name of the GSI
+        KeyConditionExpression: 'username = :username',
+        ExpressionAttributeValues: {
+            ':username': { S: username },
+        },
+    };
+
+    try {
+        const command = new QueryCommand(params);
+        const result = await this.dynamoDB.send(command);
+        if (result.Items && result.Items.length > 0) {
+            const updateParams = {
+                TableName: this.twitchTableName,
+                Key: { user_id: { N: result.Items[0].user_id.N } },
+                UpdateExpression: 'SET discordID = :discordID, discordUsername = :discordUsername',
+                ExpressionAttributeValues: {
+                    ':discordID': { S: discordID },
+                    ':discordUsername': { S: discordUsername },
+                },
+                ReturnValues: 'ALL_NEW',
+            };
+            const updateCommand = new UpdateItemCommand(updateParams);
+            const updateResult = await this.dynamoDB.send(updateCommand);
+            console.log(`Discord info added to Twitch user (${username}):`, updateResult.Attributes);
+            return 'OK';
+          } else {
+          return (`Twitch user (${username}) not found.`);
+          //throw new Error(`Twitch user (${username}) not found.`);
+        }
+    } catch (error) {
+        console.error('Error adding Discord info to Twitch user:', error);
+        return('Error adding Discord info to Twitch user:', error);
+    }
+}
+
+async getTwitchUserByUsername(username) {
+    const params = {
+        TableName: this.twitchTableName,
+        IndexName: 'UsernameIndex', // Name of the GSI
+        KeyConditionExpression: 'username = :username',
+        ExpressionAttributeValues: {
+            ':username': { S: username },
+        },
+    };
+
+    try {
+        const command = new QueryCommand(params);
+        return await this.dynamoDB.send(command);
+    } catch (error) {
+        console.error('Error getting Twitch user by username:', error);
+        throw error;
+    }
+}
+
+async addDiscordInfoToYoutubeUser(username, discordID, discordUsername, avatarURL) {
+  // Check if the user already has a discordID
+
+  const existingUser = await this.getYoutubeUserByUsername(username);
+  if (existingUser && existingUser.Items && existingUser.Items.length > 0 && existingUser.Items[0].discordID && existingUser.Items[0].discordID.S) {
+      return (`YouTube user (${username}) has already been associated with a discord username. Use !checkYT yourYTUserName to see if your YTUsername is associated with your discord account.`);
+  }
+
+  if (existingUser.Count <= 0)
+  {
+    return `YouTube user (${username}) has not interacted in YouTube chat`;
+  }
+
+
+  const params = {
+      TableName: this.youtubeTableName,
+      IndexName: 'UsernameIndex', // Name of the GSI
+      KeyConditionExpression: 'username = :username',
+      ExpressionAttributeValues: {
+          ':username': { S: username },
+      },
+  };
+
+  try {
+      const command = new QueryCommand(params);
+      const result = await this.dynamoDB.send(command);
+      if (result.Items && result.Items.length > 0) {
+          const updateParams = {
+              TableName: this.youtubeTableName,
+              Key: { user_id: { N: result.Items[0].user_id.N } },
+              UpdateExpression: 'SET discordID = :discordID, discordUsername = :discordUsername',
+              ExpressionAttributeValues: {
+                  ':discordID': { S: discordID },
+                  ':discordUsername': { S: discordUsername },
+              },
+              ReturnValues: 'ALL_NEW',
+          };
+          const updateCommand = new UpdateItemCommand(updateParams);
+          const updateResult = await this.dynamoDB.send(updateCommand);
+          console.log(`Discord info added to YouTube user (${username}):`, updateResult.Attributes);
+          return 'OK';
+      } else {
+         return(`YouTube user (${username}) not found.`);
+      }
+  } catch (error) {
+      console.log(`Discord info added to YouTube user (${username}):`, updateResult.Attributes);
+      return('Error adding Discord info to YouTube user:', error);
+  }
+}
+
+async getYoutubeUserByUsername(username) {
+  const params = {
+      TableName: this.youtubeTableName,
+      IndexName: 'UsernameIndex', // Name of the GSI
+      KeyConditionExpression: 'username = :username',
+      ExpressionAttributeValues: {
+          ':username': { S: username },
+      },
+  };
+
+  try {
+      const command = new QueryCommand(params);
+      return await this.dynamoDB.send(command);
+  } catch (error) {
+      console.error('Error getting YouTube user by username:', error);
+      throw error;
+  }
+}
+
+  async addPointsToYoutubeUser(username, pointsToAdd, userId, messageId, displayName) {
     const params = {
       TableName: this.youtubeTableName,
-      Key: { username: { S: username } },
-      UpdateExpression: 'SET points = if_not_exists(points, :zero) + :points',
+      Key: { user_id: { N: userId } },
+        ':userName': { S: username },
+        UpdateExpression: 'SET points = if_not_exists(points, :zero) + :points, message_id = :messageId, username = :userName, display_name = :displayName',
       ExpressionAttributeValues: {
         ':points': { N: pointsToAdd.toString() },
         ':zero': { N: '0' },
+        ':messageId': { S: messageId },
+        ':userName': { S: username },
+        ':displayName': { S: displayName },
       },
       ReturnValues: 'ALL_NEW', // Change this if you want to get different information after the update
     };
@@ -133,14 +274,13 @@ async describeTable(tableName) {
     try {
       const command = new UpdateItemCommand(params);
       const result = await this.dynamoDB.send(command);
-      console.log(`Points added to YouTube user (${username}):`, result.Attributes);
+      console.log(`Updated points for YouTube user (${username}):`, result.Attributes);
     } catch (error) {
       console.error('Error updating points for YouTube user:', error);
       throw error;
     }
   }
 
-  // ... Other methods
 }
 
 module.exports = DynamoDBManager;

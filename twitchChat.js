@@ -1,5 +1,5 @@
 const tmi = require('tmi.js');
-const DynamoDBManager = require('./dynamoDB'); // Update the path to the correct location
+const DynamoDBManager = require('./dynamoDB'); 
 dotenv = require('dotenv').config();
 
 //rewards points

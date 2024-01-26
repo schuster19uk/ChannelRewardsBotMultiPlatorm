@@ -12,7 +12,6 @@ dotenv = require('dotenv').config()
 //const { initializeDatabase } = require('./dynamoDB');
 //const { initializeDatabase} = require('./database');
 const { connectToYouTubeChat } = require('./youtubeChat');
-console.log(process.env)
 const app = express();
 const PORT = 3000;
 
@@ -39,9 +38,6 @@ const state = 'your_random_state';
 const dynamoDBManager = new DynamoDBManager(process.env["AWS_REGION"] , process.env["DYNAMO_TWITCH_USERS_TABLENAME"] , process.env["DYNAMO_YOUTUBE_USERS_TABLENAME"]);
 const twitchTableSettings = { name: process.env["DYNAMO_TWITCH_USERS_TABLENAME"] }; 
 const youtubeTableSettings = { name: process.env["DYNAMO_YOUTUBE_USERS_TABLENAME"] };
-
-console.log('twitch table stuff: ' + JSON.stringify(twitchTableSettings));
-console.log('youtube table stuff: ' + JSON.stringify(youtubeTableSettings));
 
 app.listen(PORT, async () => {
   try {
