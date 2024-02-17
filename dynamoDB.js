@@ -1,5 +1,5 @@
 //TODO !checkTwitch , !checkYT commands to return if their accounts match.
-const { DynamoDBClient, CreateTableCommand,DescribeTableCommand, UpdateItemCommand ,QueryCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, CreateTableCommand,DescribeTableCommand, UpdateItemCommand ,QueryCommand , GetItemCommand } = require('@aws-sdk/client-dynamodb');
 
 class DynamoDBManager {
   constructor(region, twitchTableName, youtubeTableName) {
@@ -36,14 +36,19 @@ async createTable(tableSettings) {
       console.log(`Table '${tableSettings.name}' already exists.`);
   } catch (error) {
       if (error.name === 'ResourceNotFoundException') {
+
+        let command;
+
+        if (tableSettings.name == process.env["DYNAMO_TWITCH_USERS_TABLENAME"])
+        {
           // Table does not exist, proceed with creation
-          const command = new CreateTableCommand({
+          command = new CreateTableCommand({
             TableName: tableSettings.name,
             KeySchema: [
                 { AttributeName: 'user_id', KeyType: 'HASH' }, // Partition key
             ],
             AttributeDefinitions: [
-                { AttributeName: 'user_id', AttributeType: 'N' }, // Assuming user_id is a number
+                { AttributeName: 'user_id', AttributeType: 'N' },
                 { AttributeName: 'username', AttributeType: 'S' },
             ],
             ProvisionedThroughput: {
@@ -65,9 +70,42 @@ async createTable(tableSettings) {
                     },
                 },
             ],
-        });
-
-
+        
+          });
+        }
+        else
+        {
+          command = new CreateTableCommand({
+            TableName: tableSettings.name,
+            KeySchema: [
+                { AttributeName: 'user_id', KeyType: 'HASH' }, // Partition key
+            ],
+            AttributeDefinitions: [
+                { AttributeName: 'user_id', AttributeType: 'S' },
+                { AttributeName: 'username', AttributeType: 'S' },
+            ],
+            ProvisionedThroughput: {
+                ReadCapacityUnits: tableSettings.readCapacity || 5,
+                WriteCapacityUnits: tableSettings.writeCapacity || 5,
+            },
+            GlobalSecondaryIndexes: [
+                {
+                    IndexName: 'UsernameIndex', // Choose a meaningful name for your index
+                    KeySchema: [
+                        { AttributeName: 'username', KeyType: 'HASH' },
+                    ],
+                    Projection: {
+                        ProjectionType: 'ALL', // You can adjust this based on your needs
+                    },
+                    ProvisionedThroughput: {
+                        ReadCapacityUnits: 5, // Adjust based on your read requirements
+                        WriteCapacityUnits: 5, // Adjust based on your write requirements
+                    },
+                },
+            ],
+        
+          });
+        }
 
           try {
               const response = await this.dynamoDB.send(command);
@@ -179,7 +217,8 @@ async getTwitchUserByUsername(username) {
 
     try {
         const command = new QueryCommand(params);
-        return await this.dynamoDB.send(command);
+        const result = await this.dynamoDB.send(command);
+        return result;
     } catch (error) {
         console.error('Error getting Twitch user by username:', error);
         throw error;
@@ -236,37 +275,57 @@ async addDiscordInfoToYoutubeUser(username, discordID, discordUsername, avatarUR
   }
 }
 
-async getYoutubeUserByUsername(username) {
+async getYoutubeUserByUserId(userId) {
   const params = {
-      TableName: this.youtubeTableName,
-      IndexName: 'UsernameIndex', // Name of the GSI
-      KeyConditionExpression: 'username = :username',
-      ExpressionAttributeValues: {
-          ':username': { S: username },
-      },
+    TableName: this.youtubeTableName,
+    Key: {
+      user_id: { S: userId }
+    }
   };
 
   try {
-      const command = new QueryCommand(params);
-      return await this.dynamoDB.send(command);
+    const command = new GetItemCommand(params);
+    const result = await this.dynamoDB.send(command);
+    return result.Item;
   } catch (error) {
-      console.error('Error getting YouTube user by username:', error);
-      throw error;
+    console.error('Error getting YouTube user by ID:', error);
+    throw error;
   }
 }
 
-  async addPointsToYoutubeUser(username, pointsToAdd, userId, messageId, displayName) {
+
+async getYoutubeUserById(userId) {
+  const params = {
+    TableName: this.youtubeTableName,
+    Key: {
+      user_id: { S: userId }
+    }
+  };
+
+  try {
+    const command = new GetItemCommand(params);
+    const result = await this.dynamoDB.send(command);
+    return result.Item;
+  } catch (error) {
+    console.error('Error getting YouTube user by ID:', error);
+    throw error;
+  }
+}
+
+  async addPointsToYoutubeUser(username, pointsToAdd, userId, messageId, displayName , publishedAt, publishedAtUTC) {
     const params = {
       TableName: this.youtubeTableName,
-      Key: { user_id: { N: userId } },
+      Key: { user_id: { S: userId } },
         ':userName': { S: username },
-        UpdateExpression: 'SET points = if_not_exists(points, :zero) + :points, message_id = :messageId, username = :userName, display_name = :displayName',
+        UpdateExpression: 'SET points = if_not_exists(points, :zero) + :points, message_id = :messageId, username = :userName, display_name = :displayName , last_message_date = :publishedAt, last_message_date_utc = :publishedAtUTC',
       ExpressionAttributeValues: {
         ':points': { N: pointsToAdd.toString() },
         ':zero': { N: '0' },
         ':messageId': { S: messageId },
         ':userName': { S: username },
         ':displayName': { S: displayName },
+        ':publishedAt': { S: publishedAt },
+        ':publishedAtUTC': { S: publishedAtUTC },
       },
       ReturnValues: 'ALL_NEW', // Change this if you want to get different information after the update
     };

@@ -1,23 +1,22 @@
 const { Client, GatewayIntentBits } = require('discord.js');
-const DynamoDBManager = require('./dynamoDB'); 
-dotenv = require('dotenv').config();
+const DynamoDBManager = require('./dynamoDB');
+const dotenv = require('dotenv').config();
 
 class DiscordModule {
     constructor() {
+        this.dynamoDBManager = new DynamoDBManager(process.env.AWS_REGION, process.env.DYNAMO_TWITCH_USERS_TABLENAME, process.env.DYNAMO_YOUTUBE_USERS_TABLENAME);
 
-        this.dynamoDBManager = new DynamoDBManager(process.env["AWS_REGION"] , process.env["DYNAMO_TWITCH_USERS_TABLENAME"] , process.env["DYNAMO_YOUTUBE_USERS_TABLENAME"]);
-
-        // Define the necessary intents for your bot
         const intents = [
-            GatewayIntentBits.Guilds, // Required for reading server information
-            GatewayIntentBits.GuildMessages, // Required for reading messages
+            GatewayIntentBits.Guilds,
+            GatewayIntentBits.GuildMessages,
             // Add other intents as needed
         ];
 
-        this.client = new Client({ 
+        this.client = new Client({
             intents,
             // Add other client options as needed
         });
+
         this.setupEvents();
     }
 
@@ -33,11 +32,11 @@ class DiscordModule {
         this.client.on('error', (error) => {
             console.error('Discord.js error:', error);
         });
-        
+
         this.client.on('warn', (warning) => {
             console.warn('Discord.js warning:', warning);
         });
-        
+
         this.client.on('disconnect', (event) => {
             console.log(`Disconnected: ${event.reason || 'No reason provided'}`);
         });
@@ -109,7 +108,7 @@ class DiscordModule {
                     {
                         youtubeUserStr = youtubeUserStr[0];
                         //added in here for now (REMOVE when youtube stuffs is ready)
-                        const addPointsYT = await this.dynamoDBManager.addPointsToYoutubeUser(youtubeUserStr, parseInt(5), discordUserId, '3455', discordUsername);
+                        const addPointsYT = await this.dynamoDBManager.addPointsToYoutubeUser(youtubeUserStr, parseInt(5), discordUserId, '3455', discordUsername , new Date().toISOString());
                     
                         const result = await this.dynamoDBManager.addDiscordInfoToYoutubeUser(youtubeUserStr, discordUserId, discordUsername)
                         if (result == 'OK')
@@ -135,6 +134,15 @@ class DiscordModule {
         }
         else {
             //for now if its not a link do nothing
+        }
+    }
+
+    async sendMessage(channelId, message) {
+        const channel = this.client.channels.cache.get(channelId);
+        if (channel) {
+            channel.send(message);
+        } else {
+            console.error(`Channel with ID ${channelId} not found.`);
         }
     }
 

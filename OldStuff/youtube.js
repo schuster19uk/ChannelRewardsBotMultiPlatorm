@@ -39,3 +39,64 @@ async function getLiveChatUsers(videoId) {
 // Export other functions or variables as needed
 
 module.exports = { getLiveChatMessages , getLiveChatUsers };
+
+
+    // const filteredMessages = messages
+    //   .filter((message) => {
+    //     const publishedAt = new Date(message.snippet.publishedAt);
+    //     const authorChannelId = message.authorDetails.channelId;
+
+    //     return (
+    //       startTime <= publishedAt &&
+    //       publishedAt <= endTime &&
+    //       authorChannelId === targetChannelId
+    //     );
+    //   })
+    //   .map((message) => {
+    //     // Extract message details including text
+    //     const { textMessageDetails, publishedAt, authorDetails } = message.snippet;
+    //     const authorChannelId = authorDetails.channelId;
+
+    //     return {
+    //       text: textMessageDetails.messageText,
+    //       publishedAt: publishedAt,
+    //       author: {
+    //         channelId: authorChannelId,
+    //       },
+    //     };
+    //   });
+
+
+    // const filteredMessages = messages
+    // .filter((message) => {
+    //   const publishedAt = new Date(message.snippet.publishedAt);
+    //   const authorChannelId = message.authorDetails.channelId;
+  
+    //   return (
+    //     startTime <= publishedAt &&
+    //     publishedAt <= endTime &&
+    //     authorChannelId === targetChannelId
+    //   );
+    // })
+    // .sort((a, b) => {
+    //   // Sort by publishedAt in ascending order
+    //   return new Date(a.snippet.publishedAt) - new Date(b.snippet.publishedAt);
+    // })
+    // .map((message) => {
+    //   // Extract message details including text
+    //   const { textMessageDetails, publishedAt, authorDetails } = message.snippet;
+    //   const authorChannelId = authorDetails.channelId;
+  
+    //   return {
+    //     text: textMessageDetails.messageText,
+    //     publishedAt: publishedAt,
+    //     author: {
+    //       channelId: authorChannelId,
+    //     },
+    //   };
+    // });
+  
+    //   // Do something with the filtered messages
+    //   filteredMessages.forEach((message) => {
+    //     console.log(`Message: ${message.text}, Author: ${message.author.channelId}, Published At: ${message.publishedAt}`);
+    //   });

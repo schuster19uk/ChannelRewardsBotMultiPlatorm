@@ -21,8 +21,8 @@ const twitchClientSecret = process.env["TWITCH_CLIENT_SECRET"];
 const twitchRedirectUri = process.env["TWITCH_REDIRECT_URL"];
 
 // YouTube API key
-const youtubeApiKey = process.env["YT_API_KEY"]; //'AIzaSyBs1ymT2dbGDZHlfTaRHeh_sOOb3w7FYNA'; // Obtain from Google Cloud Console
-const youtubeChannelId = process.env["YT_CHANNELID"]; //'UCwsyRVF3X7RylJJi7nct0qQ'; //this is the channel id // Replace with your YouTube channel username
+const youtubeApiKey = process.env["YT_API_KEY"];  // Obtain from Google Cloud Console
+const youtubeChannelId = process.env["YT_CHANNELID"]; //this is the channel id // Replace with your YouTube channel username
 const youtubeChannelUsername = process.env["YT_CHANNELNAME"];//accounts prior to a certain date don't have these
 // Twitch API endpoints
 const twitchAuthUrl = process.env["TWITCH_AUTHORISE_URL"];
